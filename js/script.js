@@ -1,4 +1,3 @@
-// الحصول على العناصر من HTML
 const textDisplay = document.getElementById('text-display');
 const textInput = document.getElementById('text-input');
 const wpmSpan = document.getElementById('wpm');
@@ -7,7 +6,6 @@ const restartButton = document.getElementById('restart-button');
 const statsDiv = document.querySelector('.stats'); 
 const wordCountInput = document.getElementById('wordCount');
 
-// المتغيرات الأساسية لحالة التمرين
 let currentText = '';
 let startTime = 0;
 let timerInterval;
@@ -16,9 +14,8 @@ let correctCharacters = 0;
 let errors = 0;
 let isTypingStarted = false;
 
-// --- وظيفة لجلب نص عشوائي من ويكيبيديا وتنظيفه ---
 async function fetchRandomWikipediaText() {
-    textDisplay.textContent = 'جارٍ تحميل النص...'; 
+    textDisplay.textContent = 'جالس يحمل النص اصبر'; 
     textInput.disabled = true; 
     restartButton.disabled = true; 
     wordCountInput.disabled = true; 
@@ -27,37 +24,46 @@ async function fetchRandomWikipediaText() {
     wpmSpan.textContent = 0; 
     timerSpan.textContent = 0;
 
+    let collectedRawText = '';
+    const desiredWordCount = parseInt(wordCountInput.value, 10);
+    const maxFetchAttempts = 15; 
+    
     try {
-        const response = await fetch('https://ar.wikipedia.org/w/api.php?action=query&format=json&generator=random&grnnamespace=0&prop=extracts&exchars=1500&explaintext=1&origin=*');
-        const data = await response.json();
+        for (let i = 0; i < maxFetchAttempts; i++) {
+            const response = await fetch('https://ar.wikipedia.org/w/api.php?action=query&format=json&generator=random&grnnamespace=0&prop=extracts&exchars=1500&explaintext=1&origin=*');
+            const data = await response.json();
 
-        const pages = data.query.pages;
-        const pageId = Object.keys(pages)[0];
-        let rawText = pages[pageId].extract;
+            const pages = data.query.pages;
+            const pageId = Object.keys(pages)[0];
+            let rawText = pages[pageId].extract;
 
-        // تنظيف النص:
-        rawText = rawText.replace(/\[.*?\]|\(.*?\)/g, '');
-        rawText = rawText.replace(/[0-9]/g, '');
-        rawText = rawText.replace(/[a-zA-Z]/g, '');
-        rawText = rawText.replace(/[\u064B-\u0652]/g, ""); 
-        rawText = rawText.replace(/[أإآ]/g, "ا");
-        rawText = rawText.replace(/ى/g, "ي");
-        rawText = rawText.replace(/[^\u0600-\u06FF\s]/g, ''); 
-        rawText = rawText.replace(/[،؛ـ؟‘’“”٬]/g, ''); 
-        
-        rawText = rawText.replace(/(\S*?(\S)\2{2,}\S*?)/g, ' '); 
-        rawText = rawText.replace(/(كوم|دوت|www|http|wiki|صفحة|موقع|ويكيبيديا|مراجع|المراجع|وصلات|خارجية|ببليوغرافيا|ملاحظات|مصادر|دراسات|قراءات\s*إضافية|كتب|مجلات|مواقع|أنظر\s*أيضا)\S*/g, ' ');
-        
-        rawText = rawText.replace(/\b\S{9,}\b/g, ' '); 
-        
-        // تم التعديل هنا: إضافة "اوليمبيديا"
-        rawText = rawText.replace(/\b(مونتيروني|ديسكوغز|بيزبول|رفرنس|كوم|ويكيبيديا|اوليمبيديا|انظر|أيضا|وصلات|خارجية|ببليوغرافيا|ملاحظات|مصادر|دراسات|قراءات|إضافية|كتب|مجلات|مواقع|مراجع|المراجع)\b/g, ' ');
+            rawText = rawText.replace(/\[.*?\]|\(.*?\)/g, '');
+            rawText = rawText.replace(/[0-9]/g, '');
+            rawText = rawText.replace(/[a-zA-Z]/g, '');
+            rawText = rawText.replace(/[\u064B-\u0652]/g, ""); 
+            rawText = rawText.replace(/[أإآ]/g, "ا");
+            rawText = rawText.replace(/ى/g, "ي");
+            rawText = rawText.replace(/[^\u0600-\u06FF\s]/g, ''); 
+            rawText = rawText.replace(/[،؛ـ؟‘’“”٬]/g, ''); 
+            
+            rawText = rawText.replace(/(\S*?(\S)\2{2,}\S*?)/g, ' '); 
+            rawText = rawText.replace(/(كوم|دوت|www|http|wiki|صفحة|موقع|ويكيبيديا|مراجع|المراجع|وصلات|خارجية|ببليوغرافيا|ملاحظات|مصادر|دراسات|قراءات\s*إضافية|كتب|مجلات|مواقع|أنظر\s*أيضا)\S*/g, ' ');
+            
+            rawText = rawText.replace(/\b\S{9,}\b/g, ' '); 
+            
+            rawText = rawText.replace(/\b(مونتيروني|ديسكوغز|بيزبول|رفرنس|كوم|ويكيبيديا|اوليمبيديا|انظر|أيضا|وصلات|خارجية|ببليوغرافيا|ملاحظات|مصادر|دراسات|قراءات|إضافية|كتب|مجلات|مواقع|مراجع|المراجع)\b/g, ' ');
+            
+            rawText = rawText.replace(/\s+/g, ' ').trim();
 
-        rawText = rawText.replace(/\s+/g, ' ').trim();
+            if (rawText.length > 0) {
+                collectedRawText += ' ' + rawText; 
+                if (collectedRawText.split(/\s+/).filter(word => word.length > 0).length >= desiredWordCount) {
+                    break; 
+                }
+            }
+        }
 
-        const words = rawText.split(/\s+/);
-        const desiredWordCount = parseInt(wordCountInput.value, 10);
-
+        const words = collectedRawText.split(/\s+/).filter(word => word.length > 0);
         let selectedText = words.slice(0, desiredWordCount).join(' ');
 
         if (!selectedText.trim() || words.length < desiredWordCount / 2) {
@@ -67,7 +73,7 @@ async function fetchRandomWikipediaText() {
         return selectedText;
 
     } catch (error) {
-        console.error('حدث خطأ أثناء جلب النص من ويكيبيديا:', error);
+        console.error('Error fetching Wikipedia text:', error);
         return ""; 
     } finally {
         textInput.disabled = false; 
@@ -76,18 +82,23 @@ async function fetchRandomWikipediaText() {
     }
 }
 
-// --- وظيفة تهيئة التمرين ---
 async function initializeTest() {
     currentText = await fetchRandomWikipediaText(); 
     
     textDisplay.innerHTML = ''; 
     textInput.value = ''; 
 
-    currentText.split('').forEach(char => {
-        const charSpan = document.createElement('span');
-        charSpan.textContent = char;
-        textDisplay.appendChild(charSpan);
-    });
+    if (currentText.length === 0) {
+        textDisplay.textContent = 'عذراً، لم يتم العثور على نص عربي مناسب بالعدد المطلوب. حاول مرة أخرى أو قلل عدد الكلمات.';
+        textInput.disabled = true; 
+    } else {
+        currentText.split('').forEach(char => {
+            const charSpan = document.createElement('span');
+            charSpan.textContent = char;
+            textDisplay.appendChild(charSpan);
+        });
+        textInput.disabled = false; 
+    }
 
     typedCharacters = 0;
     correctCharacters = 0;
@@ -99,12 +110,13 @@ async function initializeTest() {
 
     textInput.focus();
 
-    highlightCurrentChar(0);
+    if (currentText.length > 0) {
+        highlightCurrentChar(0);
+    }
 
     statsDiv.classList.remove('show'); 
 }
 
-// --- وظيفة لتسليط الضوء على الحرف الحالي ---
 function highlightCurrentChar(charIndex) {
     const allChars = textDisplay.querySelectorAll('span');
     allChars.forEach((span, index) => {
@@ -116,7 +128,6 @@ function highlightCurrentChar(charIndex) {
     }
 }
 
-// --- وظيفة لتوحيد الحروف المتشابهة (الهمزات، الياءات، الواوات، الهاء والتاء المربوطة) ---
 function normalizeChar(char) {
     switch (char) {
         case 'أ': case 'إ': case 'آ': case 'ا': case '1': 
@@ -125,19 +136,21 @@ function normalizeChar(char) {
             return 'ي';
         case 'ؤ': case 'و':
             return 'و';
-        // ***** تم التعديل هنا لإضافة توحيد الهاء والتاء المربوطة *****
         case 'ه': case 'ة': 
-            return 'ه'; // يمكنك تغييرها إلى 'ة' إذا أردت
+            return 'ه'; 
         default:
             return char;
     }
 }
 
-// --- وظيفة معالجة إدخال المستخدم ---
 function handleTyping(event) {
     const typedText = textInput.value;
     const currentTypedChar = typedText.slice(-1); 
     const currentCharIndex = typedText.length - 1; 
+
+    if (currentText.length === 0) {
+        return; 
+    }
 
     if (!isTypingStarted) {
         isTypingStarted = true;
@@ -183,6 +196,11 @@ function handleTyping(event) {
 
     highlightCurrentChar(typedText.length);
 
+    const currentSpan = textDisplay.querySelector('span.current');
+    if (currentSpan) {
+        currentSpan.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
     if (typedText.length === currentText.length) {
         clearInterval(timerInterval); 
         updateStats(); 
@@ -192,14 +210,12 @@ function handleTyping(event) {
     }
 }
 
-// --- وظيفة تحديث المؤقت ---
 function updateTimer() {
     const currentTime = new Date().getTime();
     const elapsedTime = Math.floor((currentTime - startTime) / 1000); 
     timerSpan.textContent = elapsedTime;
 }
 
-// --- وظيفة تحديث الإحصائيات (السرعة) ---
 function updateStats() {
     const elapsedTimeInMinutes = (new Date().getTime() - startTime) / 1000 / 60; 
     let wpm = 0;
@@ -209,7 +225,6 @@ function updateStats() {
     wpmSpan.textContent = wpm;
 }
 
-// --- ربط الأحداث (Event Listeners) ---
 textInput.addEventListener('input', handleTyping);
 
 restartButton.addEventListener('click', () => {
@@ -217,5 +232,4 @@ restartButton.addEventListener('click', () => {
     initializeTest(); 
 });
 
-// تشغيل التمرين عند تحميل الصفحة لأول مرة
 initializeTest();
